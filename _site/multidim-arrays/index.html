@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+<link rel="icon" href="/">
+
+<title>The quirks and performance of java arrays | Sander's Blog</title>
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>The quirks and performance of java arrays | Infinite Improbablity</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="The quirks and performance of java arrays" />
+<meta name="author" content="sander.hautvast" />
+<meta property="og:locale" content="en" />
+<meta name="description" content="Why a blog about the performance of arrays in java? They are old-school. Does anyone really need them?" />
+<meta property="og:description" content="Why a blog about the performance of arrays in java? They are old-school. Does anyone really need them?" />
+<link rel="canonical" href="http://localhost:4000/multidim-arrays/" />
+<meta property="og:url" content="http://localhost:4000/multidim-arrays/" />
+<meta property="og:site_name" content="Infinite Improbablity" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-08-24T00:00:00+02:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="The quirks and performance of java arrays" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"sander.hautvast"},"dateModified":"2023-08-24T00:00:00+02:00","datePublished":"2023-08-24T00:00:00+02:00","description":"Why a blog about the performance of arrays in java? They are old-school. Does anyone really need them?","headline":"The quirks and performance of java arrays","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/multidim-arrays/"},"publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/"},"name":"sander.hautvast"},"url":"http://localhost:4000/multidim-arrays/"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    
+<link href="/assets/css/screen.css" rel="stylesheet">
+
+<link href="/assets/css/main.css" rel="stylesheet">
+
+<script src="/assets/js/jquery.min.js"></script>
+
+</head>
+
+
+
+
+<body class="layout-post">
+	<!-- defer loading of font and font awesome -->
+	<noscript id="deferred-styles">
+		<link href="https://fonts.googleapis.com/css?family=Righteous%7CMerriweather:300,300i,400,400i,700,700i" rel="stylesheet">
+		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+	</noscript>
+
+
+<!-- Begin Menu Navigation
+================================================== -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top mediumnavigation nav-down">
+
+    <div class="container pr-0">
+
+    <!-- Begin Logo -->
+    <a class="navbar-brand" href="https://sanderhautvast.github.io/">
+    <img src="/" alt="Sander's Blog">
+    </a>
+    <!-- End Logo -->
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarMediumish" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarMediumish">
+
+        <!-- Begin Menu -->
+
+            <ul class="navbar-nav ml-auto">
+
+<!--                -->
+<!--                <li class="nav-item">-->
+<!--                -->
+<!--                <a class="nav-link" href="/index.html">Blog</a>-->
+<!--                </li>-->
+
+<!--                <li class="nav-item">-->
+<!--                <a class="nav-link" href="/about">About</a>-->
+<!--                </li>-->
+
+<!--                <li class="nav-item">-->
+<!--                <a target="_blank" class="nav-link" href="https://bootstrapstarter.com/bootstrap-templates/template-mediumish-bootstrap-jekyll/"> Docs</a>-->
+<!--                </li>-->
+
+<!--                <li class="nav-item">-->
+<!--                <a target="_blank" class="nav-link" href="https://www.wowthemes.net/themes/mediumish-wordpress/"><i class="fab fa-wordpress-simple"></i> WP Version</a>-->
+<!--                </li>-->
+
+<!--                <li class="nav-item">-->
+<!--                <a target="_blank" class="nav-link" href="https://www.wowthemes.net/themes/mediumish-ghost/"><i class="fab fa-snapchat-ghost"></i> Ghost Version</a>-->
+<!--                </li>-->
+
+<!--                <li class="nav-item">-->
+<!--                <a target="_blank" class="nav-link" href="https://github.com/wowthemesnet/mediumish-theme-jekyll"><i class="fab fa-github"></i> Fork on Github</a>-->
+<!--                </li>-->
+
+                <script src="/assets/js/lunr.js"></script>
+
+
+<style>
+    .lunrsearchresult .title {color: #d9230f;}
+    .lunrsearchresult .url {color: silver;}
+    .lunrsearchresult a {display: block; color: #777;}
+    .lunrsearchresult a:hover, .lunrsearchresult a:focus {text-decoration: none;}
+    .lunrsearchresult a:hover .title {text-decoration: underline;}
+</style>
+
+
+<form class="bd-search" onSubmit="return lunr_search(document.getElementById('lunrsearch').value);">
+    <input type="text" class="form-control text-small launch-modal-search" id="lunrsearch" name="q" maxlength="255" value="" placeholder="Type and enter..."/>
+</form>
+
+<div id="lunrsearchresults">
+    <ul></ul>
+</div>
+
+<script src="/assets/js/lunrsearchengine.js"></script>
+
+            </ul>
+
+        <!-- End Menu -->
+
+    </div>
+
+    </div>
+</nav>
+<!-- End Navigation
+================================================== -->
+
+<div class="site-content">
+
+<div class="container">
+
+<!-- Site Title
+================================================== -->
+<div class="mainheading">
+    <h1 class="sitetitle">
+        Sander's Blog
+    </h1>
+    <p class="lead">
+        What I might have failed to mention
+    </p>
+</div>
+
+<!-- Content
+================================================== -->
+<div class="main-content">
+    <!-- Begin Article
+================================================== -->
+<div class="container">
+    <div class="row">
+
+        <!-- Post Share -->
+        <div class="col-md-2 pl-0">
+            <div class="share sticky-top sticky-top-offset">
+    <p>
+        Share
+    </p>
+    <ul>
+        <li class="ml-1 mr-1">
+            <a target="_blank" href="https://twitter.com/intent/tweet?text=The quirks and performance of java arrays&url=http://localhost:4000/multidim-arrays/" onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+                <i class="fab fa-twitter"></i>
+            </a>
+        </li>
+
+        <li class="ml-1 mr-1">
+            <a target="_blank" href="https://facebook.com/sharer.php?u=http://localhost:4000/multidim-arrays/" onclick="window.open(this.href, 'facebook-share', 'width=550,height=435');return false;">
+                <i class="fab fa-facebook-f"></i>
+            </a>
+        </li>
+
+        <li class="ml-1 mr-1">
+            <a target="_blank" href="https://www.linkedin.com/shareArticle?mini=true&url=http://localhost:4000/multidim-arrays/" onclick="window.open(this.href, 'width=550,height=435');return false;">
+                <i class="fab fa-linkedin-in"></i>
+            </a>
+        </li>
+
+    </ul>
+    
+    <div class="sep">
+    </div>
+    <ul>
+        <li>
+        <a class="small smoothscroll" href="#disqus_thread"></a>
+        </li>
+    </ul>
+    
+</div>
+
+        </div>
+
+        <!-- Post -->
+        
+
+        <div class="col-md-9 flex-first flex-md-unordered">
+            <div class="mainheading">
+
+                <!-- Author Box -->
+                
+                <div class="row post-top-meta">
+                    <div class="col-xs-12 col-md-3 col-lg-2 text-center text-md-left mb-4 mb-md-0">
+                        
+                        <img class="author-thumb" src="https://www.gravatar.com/avatar/c50cfcd38195af19d0f092b8d7dc15bc?s=250&d=mm&r=x" alt="Sander Hautvast">
+                        
+                    </div>
+                    <div class="col-xs-12 col-md-9 col-lg-10 text-center text-md-left">
+                        <a target="_blank" class="link-dark" href="https://sanderhautvast.github.io">Sander Hautvast</a><a target="_blank" href="" class="btn follow">Follow</a>
+                        <span class="author-description"></span>
+                    </div>
+                </div>
+                
+
+                <!-- Post Title -->
+                <h1 class="posttitle">The quirks and performance of java arrays</h1>
+
+            </div>
+
+            <!-- Adsense if enabled from _config.yml (change your pub id and slot) -->
+            
+            <!-- End Adsense -->
+
+            <!-- Post Featured Image -->
+            
+            <!-- End Featured Image -->
+
+            <!-- Post Content -->
+            <div class="article-post">
+                <!-- Toc if any -->
+                
+                <!-- End Toc -->
+                <p>Why a blog about the performance of arrays in java? They are old-school. Does anyone really need them?</p>
+
+<p>The only (active) memory I have of seeing arrays in an <em>actual</em> codebase was in a situation where ideally you’d used multiple return types (like in Python) or first-class tuples (like in rust). Please don’t return multiple objects in an Object[].</p>
+
+<blockquote>
+  <p>What made you write this then?</p>
+</blockquote>
+
+<p>Several reasons, one of which is a recent blog from oracle called <a href="https://blogs.oracle.com/javamagazine/post/java-array-objects">Inside the JVM: Arrays and how they differ from other objects</a> which was disappointing because it failed to reveal any useful new information. This <a href="https://blogs.oracle.com/javamagazine/post/quiz-yourself-evaluation-order-the-assignment-operator-and-array-access-in-java">puzzler</a> is whacky though!</p>
+
+<p>And, I had just written a blog post for <a href="https://sanderhautvast.github.io.nl/multidim-arrays/">my company site</a> (in Dutch) about arrays. So I am all into them. This, by the way is the English translation of that post.</p>
+
+<p>A little while ago I stumbled over the <em>ghastlily</em> poor performance of  <em>java.lang.reflect.Array</em>. That started the whole thing. See <a href="https://bugs.openjdk.org/browse/JDK-8051447">here</a>. I wanted to create a better alternative (but I haven’t progressed much though).</p>
+
+<p>Arrays haven’t changed much (at all?) since java 1.0. Makes sense for backwards compatibility. And <em>java</em> in those days was somewhat weird (<em>still is</em>), or should I say: <em>C-like</em>. Look at this for example:</p>
+
+<p><strong>3 ways to instantiate multi-dimensional arrays</strong></p>
+
+<ol>
+  <li><code class="language-plaintext highlighter-rouge">int[][] array = new int[3][2];</code>     // ok..</li>
+  <li><code class="language-plaintext highlighter-rouge">int[] array[] = new int[2][2];</code>     // reminding of C pointer notations</li>
+  <li><code class="language-plaintext highlighter-rouge">int[][] array = new int[5][];</code>      // WTF?</li>
+</ol>
+
+<blockquote>
+  <p>What does option #3 even mean?</p>
+</blockquote>
+
+<p>And how can this not give an IndexOutOfBoundsException?</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+</pre></td><td class="rouge-code"><pre><span class="nc">String</span><span class="o">[][][]</span> <span class="n">array</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">String</span><span class="o">[</span><span class="mi">1</span><span class="o">][</span><span class="mi">1</span><span class="o">];</span>
+<span class="n">array</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">String</span><span class="o">[</span><span class="mi">2</span><span class="o">];</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>I couldn’t google the answer straightaway, so I turned to <a href="https://github.com/openjdk/jol">Jol</a> to find out more. NB. Jol does not work really well on macos (dunno about windows), so ran it in a linux vm and saw the following:
+<img src="/assets/images/arrays/screenshot-jol.png" alt="jol" /></p>
+
+<p><a href="https://github.com/openjdk/jol">Jol</a> is a tool to investigate the memory internals of java objects. For a 2-dimensional String array you’d have to do this:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+</pre></td><td class="rouge-code"><pre>java <span class="nt">-jar</span> jol-cli.jar internals <span class="s2">"[[Ljava.lang.String;"</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<blockquote>
+  <p>BTW, notice the weird notation! I knew<code class="language-plaintext highlighter-rouge">[[L</code> and <code class="language-plaintext highlighter-rouge">;</code>. If you look at bytecode, this is all over the place. <code class="language-plaintext highlighter-rouge">L</code> indicates an object (as opposed to the primitives as in <code class="language-plaintext highlighter-rouge">I</code> for ints) and <code class="language-plaintext highlighter-rouge">[[</code> is indeed an array of two dimensions. So those are the bytecode notations, but internally it also uses <code class="language-plaintext highlighter-rouge">/</code> whereas here it’s the <code class="language-plaintext highlighter-rouge">.</code> again. It’s confusing, but it turns out this is just the way that <code class="language-plaintext highlighter-rouge">Class.forName</code> wants it (if you need to need a Class object of that type). So there’s a thing I didn’t know.</p>
+</blockquote>
+
+<p>Then it dawned on me. The phrase <em>array of arrays</em> means that the outer array really doesn’t care about the lengths of the inner ones. The only thing the outer array knows is its own length.</p>
+
+<p><img src="/assets/images/arrays/screenshot-jol-length.png" alt="jol" /></p>
+
+<p>So <code class="language-plaintext highlighter-rouge">String[1][1]</code> is in fact <code class="language-plaintext highlighter-rouge">String[1][]</code>. Every element in the outer array is a 1-dimensional array, of any length! No runtime bounds checks here (C-like!). Of course once the inner array is initialized, there are checks again.</p>
+
+<blockquote>
+  <p>There are no true multi-dimensional arrays in Java, just arrays of arrays. This is why int[][] is a subclass of Object[]. If you need a large multi-dimensional int[] in Java, it is a bit more efficient to allocate a large int[] and calculate the offset yourself. However, make sure to, if possible, navigate the int[] in such a way that 64 bytes at a time can be read. That is a lot more efficient than jumping around. <strong><em><a href="https://javaspecialists.teachable.com/courses/249332/lectures/3886639">Heinz Kabutz</a></em></strong></p>
+</blockquote>
+
+<p>‘Jumping around’ is not efficient because it hinders CPU caching and <em>prefetching</em>. Random Access Memory is sloow! It’s thanks to the L1/2/3 caches that processors can actually show off their speed while dealing with memory. They fetch more than needed at the time and cache it for future reads. The effect of this amplified when the CPU can also predict your <em>next <del>move</del> read</em>. So the way you read and write an array matters.</p>
+
+<blockquote>
+  <p><strong>But what performance gain can you actually achieve?</strong></p>
+</blockquote>
+
+<p>This question tripped me and I fell down the rabbithole of microbenchmarking. I learnt a lot more about JMH, but in the end I discarded all the measurements from my Mac M2 max and reran them on a standard Amazon linux AMI. The results were more in line with what I read elsewhere. It’s also more generalisable in the sense that server applications rarely run on high-end laptop architectures. Most of the time, my laptop showed a less prominent effect of caching.</p>
+
+<h4 id="benchmarking-with-jmh">Benchmarking with JMH</h4>
+
+<p>Your friend, the JIT compiler becomes your adversary once you get into benchmarking. Initially I glowed observing a performance difference of 1342%, but that had more to do with unwanted removal of dead code, than the actual truth. Something to be very aware of.</p>
+
+<p>Also, testing your benchmarks makes sense. Verify you expectations of the actual functionality, to avoid the wrong conclusions about performance. Seems obvious but yeah, somebody had to point me to a mistake in my code…</p>
+
+<p>This is what I ended up with</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+</pre></td><td class="rouge-code"><pre><span class="nd">@Benchmark</span>
+<span class="nd">@BenchmarkMode</span><span class="o">(</span><span class="nc">Mode</span><span class="o">.</span><span class="na">AverageTime</span><span class="o">)</span>
+<span class="nd">@OutputTimeUnit</span><span class="o">(</span><span class="nc">TimeUnit</span><span class="o">.</span><span class="na">NANOSECONDS</span><span class="o">)</span>
+<span class="kd">public</span> <span class="kt">long</span> <span class="nf">classicArrayGetTDLR</span><span class="o">()</span> <span class="o">{</span>
+    <span class="kt">long</span> <span class="n">t</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+    <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">r</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="no">ROWS</span><span class="o">;</span> <span class="n">r</span><span class="o">++)</span> <span class="o">{</span>
+        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">c</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="no">COLS</span><span class="o">;</span> <span class="n">c</span><span class="o">++)</span> <span class="o">{</span>
+            <span class="n">t</span> <span class="o">+=</span> <span class="n">intArray</span><span class="o">[</span><span class="n">r</span><span class="o">][</span><span class="n">c</span><span class="o">];</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="k">return</span> <span class="n">t</span><span class="o">;</span>
+<span class="o">}</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+<p>TDLR stands for Top Down (outer loop), then Left Right. This order means that the code traverses row by row, which is good, because the memory is layed out like this. LRTD on the other hand takes one column after another. This will result in cache misses most of the time.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Benchmark</th>
+      <th>Mode</th>
+      <th style="text-align: right">Cnt</th>
+      <th style="text-align: right">Score</th>
+      <th style="text-align: right">Error</th>
+      <th>Units</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>classic2DArrayGetLRTD</td>
+      <td>avgt</td>
+      <td style="text-align: right">5</td>
+      <td style="text-align: right">4184284.298</td>
+      <td style="text-align: right">± 7651435.011</td>
+      <td>ns/op</td>
+    </tr>
+    <tr>
+      <td>classic2DArrayGetTDLR</td>
+      <td>avgt</td>
+      <td style="text-align: right">5</td>
+      <td style="text-align: right">389369.258</td>
+      <td style="text-align: right">±    4064.665</td>
+      <td>ns/op</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><em>Amazon Intel(R) Xeon(R) CPU E5-2676 v3 @ 2.40GHz</em></p>
+
+<p>Wow, 10x as fast! Exactly what <a href="https://www.youtube.com/watch?v=247cXLkYt2M">simondev</a> found (using javascript). And what my laptop annoyingly failed to reproduce. There the difference was around a factor of 2.</p>
+
+<blockquote>
+  <p><strong>Caveat:</strong>
+The individual numbers don’t mean that much.</p>
+</blockquote>
+
+<p>Another thing that Kabutz says is that it pays off to simulate multidimensional arrays using a one-dimensional one. This is easy to do. But is it useful?</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Benchmark</th>
+      <th>Mode</th>
+      <th style="text-align: right">Cnt</th>
+      <th style="text-align: right">Score</th>
+      <th style="text-align: right">Error</th>
+      <th>Units</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>seqMultArrayGetLRTD</td>
+      <td>avgt</td>
+      <td style="text-align: right">5</td>
+      <td style="text-align: right">1399817.940</td>
+      <td style="text-align: right">±  271516.298</td>
+      <td>ns/op</td>
+    </tr>
+    <tr>
+      <td>seqMultArrayGetTDLR</td>
+      <td>avgt</td>
+      <td style="text-align: right">5</td>
+      <td style="text-align: right">392543.679</td>
+      <td style="text-align: right">±    3671.543</td>
+      <td>ns/op</td>
+    </tr>
+  </tbody>
+</table>
+
+<blockquote>
+
+</blockquote>
+
+<p>The code for this benchmark (see github in the link at the bottom) allows any dimensions. Surely we can do a little better with a specialised version for just two.</p>
+
+<p>Like this:</p>
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+</pre></td><td class="rouge-code"><pre><span class="kd">public</span> <span class="kt">int</span> <span class="nf">get</span><span class="o">(</span><span class="kt">int</span> <span class="n">row</span><span class="o">,</span> <span class="kt">int</span> <span class="n">col</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">return</span> <span class="n">data</span><span class="o">[</span><span class="n">row</span> <span class="o">*</span> <span class="k">this</span><span class="o">.</span><span class="na">cols</span> <span class="o">+</span> <span class="n">col</span><span class="o">];</span>
+<span class="o">}</span>
+
+<span class="kd">public</span> <span class="kt">void</span> <span class="nf">set</span><span class="o">(</span><span class="kt">int</span> <span class="n">row</span><span class="o">,</span> <span class="kt">int</span> <span class="n">col</span><span class="o">,</span> <span class="kt">int</span> <span class="n">val</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">data</span><span class="o">[</span><span class="n">row</span> <span class="o">*</span> <span class="k">this</span><span class="o">.</span><span class="na">cols</span> <span class="o">+</span> <span class="n">col</span><span class="o">]</span> <span class="o">=</span> <span class="n">val</span><span class="o">;</span>
+<span class="o">}</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Benchmark</th>
+      <th>Mode</th>
+      <th style="text-align: right">Cnt</th>
+      <th style="text-align: right">Score</th>
+      <th style="text-align: right">Error</th>
+      <th>Units</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>seq2DArrayGetLRTD</td>
+      <td>avgt</td>
+      <td style="text-align: right">5</td>
+      <td style="text-align: right">1362950.693</td>
+      <td style="text-align: right">±   43153.084</td>
+      <td>ns/op</td>
+    </tr>
+    <tr>
+      <td>seq2DArrayGetTDLR</td>
+      <td>avgt</td>
+      <td style="text-align: right">5</td>
+      <td style="text-align: right">390777.378</td>
+      <td style="text-align: right">±   11339.226</td>
+      <td>ns/op</td>
+    </tr>
+  </tbody>
+</table>
+
+<blockquote>
+
+</blockquote>
+
+<blockquote>
+  <p>no difference!</p>
+</blockquote>
+
+<p><strong>So?</strong></p>
+
+<p>Ok, there is an advantage in calculating your own indexes, BUT only if you for some reason cannot benefit from caching. All TDLR scores are roughly equal. Suppose you are reading random parts of images, in that case, it helps.</p>
+
+<blockquote>
+  <p><strong>What about <em>writes</em>?</strong></p>
+</blockquote>
+
+<table>
+  <thead>
+    <tr>
+      <th>Benchmark</th>
+      <th>Mode</th>
+      <th style="text-align: right">Cnt</th>
+      <th style="text-align: right">Score</th>
+      <th style="text-align: right">Error</th>
+      <th>Units</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>classic2DArraySetLRTD</td>
+      <td>avgt</td>
+      <td style="text-align: right">5</td>
+      <td style="text-align: right">4212263.046</td>
+      <td style="text-align: right">± 267087.769</td>
+      <td>ns/op</td>
+    </tr>
+    <tr>
+      <td>classic2DArraySetTDLR</td>
+      <td>avgt</td>
+      <td style="text-align: right">5</td>
+      <td style="text-align: right">1032451.067</td>
+      <td style="text-align: right">±  35040.403</td>
+      <td>ns/op</td>
+    </tr>
+    <tr>
+      <td>seq2DArraySetLRTD</td>
+      <td>avgt</td>
+      <td style="text-align: right">5</td>
+      <td style="text-align: right">2569007.766</td>
+      <td style="text-align: right">±  45255.561</td>
+      <td>ns/op</td>
+    </tr>
+    <tr>
+      <td>seq2DArraySetTDLR</td>
+      <td>avgt</td>
+      <td style="text-align: right">5</td>
+      <td style="text-align: right">721699.703</td>
+      <td style="text-align: right">±  22605.344</td>
+      <td>ns/op</td>
+    </tr>
+  </tbody>
+</table>
+
+<blockquote>
+
+</blockquote>
+
+<p>3 to 4 times as fast for TDLR. Here index-calculation has more of an impact. So for editing random parts of images, especially for writing, use it.</p>
+
+<p>–&gt; But of course you should do your own measurements before embarking on any specific approach.</p>
+
+<h5 id="compiler-blackholes"><em><a href="https://shipilev.net/jvm/anatomy-quarks/27-compiler-blackholes/">compiler blackholes</a></em></h5>
+
+<p>How to avoid dead code elimination with JMH?</p>
+
+<ol>
+  <li>add a return parameter (like in the code example above)</li>
+  <li>use <em>compiler blackholes</em> (as of jdk-17)</li>
+</ol>
+
+<p>Not using the return parameter in a benchmark makes the JIT compiler think it can help you by removing your precious code. Adding a sensible return parameter prohibits it from being that clever.
+JMH will pick up whatever is returned and drops it into a black hole, and the information is lost. This in itself has some performance overhead and when the benchmark duration is in the same range, this will interfere with your measurements. Sounds like quantum physics, doesn’t it?</p>
+
+<p>So <em>Compiler blackholes</em> make sure that the JMH Blackhole is optimized away, but NOT your benchmark code. This is new a JVM feature that you have to enable as follows:</p>
+
+<p><code class="language-plaintext highlighter-rouge">java -Djmh.blackhole.mode=COMPILER -jar benchmark.jar</code></p>
+
+<h4 id="old-school">Old School?</h4>
+
+<p>Returning to the start of this article? Are arrays irrelevant for most developers, building boring web applications? They won’t often use them, but their JVM will, as arrays are used in String, ArrayList, and HashMap, in other words, the most prevalent classes (number of instances) in any running JVM.</p>
+
+<p>So iterating the characters in a String or the elements in an ArrayList follows the same performance laws as those for arrays. Oh, and don’t use LinkedList. Practice differs from theory here, because of CPU caching. Most of the internet is still not aware of this, judging from a recent poll on LinkedIn. This <a href="https://www.youtube.com/watch?v=YQs6IC-vgmo&amp;t=0s">video</a> with Bjarne Stroustrup explains exactly why.</p>
+
+<h3 id="diy">DIY</h3>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+</pre></td><td class="rouge-code"><pre>git clone https://github.com/shautvast/arraybench
+mvn clean package
+java <span class="nt">-Djmh</span>.blackhole.mode<span class="o">=</span>COMPILER <span class="nt">-jar</span> target/benchmark.jar
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<div style="text-align: right">∞</div>
+
+            </div>
+
+            <!-- Rating -->
+            
+
+            <!-- Post Date -->
+            <p>
+            <small>
+                <span class="post-date"><time class="post-date" datetime="2023-08-24">24 Aug 2023</time></span>           
+                
+                </small>
+            </p>
+
+            <!-- Post Categories -->
+            <div class="after-post-cats">
+                <ul class="tags mb-4">
+                    
+                    
+                    <li>
+                        <a class="smoothscroll" href="/categories#java">java</a>
+                    </li>
+                    
+                    <li>
+                        <a class="smoothscroll" href="/categories#performance">performance</a>
+                    </li>
+                    
+                </ul>
+            </div>
+            <!-- End Categories -->
+
+            <!-- Post Tags -->
+            <div class="after-post-tags">
+                <ul class="tags">
+                    
+                    
+                </ul>
+            </div>
+            <!-- End Tags -->
+
+            <!-- Prev/Next -->
+            <div class="row PageNavigation d-flex justify-content-between font-weight-bold">
+            
+            
+            <div class="clearfix"></div>
+            </div>
+            <!-- End Categories -->
+
+        </div>
+        <!-- End Post -->
+
+    </div>
+</div>
+<!-- End Article
+================================================== -->
+
+<!-- Begin Comments
+================================================== -->
+
+    <div class="container">
+        <div id="comments" class="row justify-content-center mb-5">
+            <div class="col-md-8">
+                <!--<section class="disqus">-->
+<!--    <div id="disqus_thread"></div>-->
+<!--    <script type="text/javascript">-->
+<!--        var disqus_shortname = '';-->
+<!--        var disqus_developer = 0;-->
+<!--        (function() {-->
+<!--            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;-->
+<!--            dsq.src = window.location.protocol + '//' + disqus_shortname + '.disqus.com/embed.js';-->
+<!--            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);-->
+<!--        })();-->
+<!--    </script>-->
+<!--    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>-->
+<!--    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>-->
+<!--</section>-->
+
+            </div>
+        </div>
+    </div>
+
+<!--End Comments
+================================================== -->
+
+<!-- Review with LD-JSON, adapt it for your needs if you like, but make sure you test the generated HTML source code first: 
+https://search.google.com/structured-data/testing-tool/u/0/
+================================================== -->
+
+</div>
+
+
+    
+</div>
+
+<!-- Categories Jumbotron
+================================================== -->
+<div class="jumbotron fortags">
+	<div class="d-md-flex h-100">
+		<div class="col-md-4 transpdark align-self-center text-center h-100">
+            <div class="d-md-flex align-items-center justify-content-center h-100">
+                <h2 class="d-md-block align-self-center py-1 font-weight-light">Explore <span class="d-none d-md-inline">→</span></h2>
+            </div>
+		</div>
+		<div class="col-md-8 p-5 align-self-center text-center">
+            
+            
+                
+                    <a class="mt-1 mb-1" href="/categories#java">java (1)</a>
+                
+                    <a class="mt-1 mb-1" href="/categories#performance">performance (1)</a>
+                
+            
+            
+		</div>
+	</div>
+</div>
+
+<!-- Begin Footer
+================================================== -->
+<footer class="footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 col-sm-6 text-center text-lg-left">
+                Copyright © 2023 Sander's Blog 
+            </div>
+            <div class="col-md-6 col-sm-6 text-center text-lg-right">    
+                <a target="_blank" href="https://www.wowthemes.net/mediumish-free-jekyll-template/">Mediumish Jekyll Theme</a> by WowThemes.net
+            </div>
+        </div>
+    </div>
+</footer>
+<!-- End Footer
+================================================== -->
+
+</div> <!-- /.site-content -->
+
+<!-- Scripts
+================================================== -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+
+<script src="/assets/js/mediumish.js"></script>
+
+
+
+<script src="/assets/js/ie10-viewport-bug-workaround.js"></script> 
+
+
+<script id="dsq-count-scr" src="//.disqus.com/count.js"></script>
+
+
+</body>
+</html>

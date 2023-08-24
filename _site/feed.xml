@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Infinite Improbablity</title>
+    <description>What I might have failed to mention</description>
+    <link>http://localhost:4000/</link>
+    <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Thu, 24 Aug 2023 21:04:22 +0200</pubDate>
+    <lastBuildDate>Thu, 24 Aug 2023 21:04:22 +0200</lastBuildDate>
+    <generator>Jekyll v4.3.2</generator>
+    
+      <item>
+        <title>The quirks and performance of java arrays</title>
+        <description>&lt;p&gt;Why a blog about the performance of arrays in java? They are old-school. Does anyone really need them?&lt;/p&gt;
+
+&lt;p&gt;The only (active) memory I have of seeing arrays in an &lt;em&gt;actual&lt;/em&gt; codebase was in a situation where ideally you’d used multiple return types (like in Python) or first-class tuples (like in rust). Please don’t return multiple objects in an Object[].&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;What made you write this then?&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Several reasons, one of which is a recent blog from oracle called &lt;a href=&quot;https://blogs.oracle.com/javamagazine/post/java-array-objects&quot;&gt;Inside the JVM: Arrays and how they differ from other objects&lt;/a&gt; which was disappointing because it failed to reveal any useful new information. This &lt;a href=&quot;https://blogs.oracle.com/javamagazine/post/quiz-yourself-evaluation-order-the-assignment-operator-and-array-access-in-java&quot;&gt;puzzler&lt;/a&gt; is whacky though!&lt;/p&gt;
+
+&lt;p&gt;And, I had just written a blog post for &lt;a href=&quot;https://sanderhautvast.github.io.nl/multidim-arrays/&quot;&gt;my company site&lt;/a&gt; (in Dutch) about arrays. So I am all into them. This, by the way is the English translation of that post.&lt;/p&gt;
+
+&lt;p&gt;A little while ago I stumbled over the &lt;em&gt;ghastlily&lt;/em&gt; poor performance of  &lt;em&gt;java.lang.reflect.Array&lt;/em&gt;. That started the whole thing. See &lt;a href=&quot;https://bugs.openjdk.org/browse/JDK-8051447&quot;&gt;here&lt;/a&gt;. I wanted to create a better alternative (but I haven’t progressed much though).&lt;/p&gt;
+
+&lt;p&gt;Arrays haven’t changed much (at all?) since java 1.0. Makes sense for backwards compatibility. And &lt;em&gt;java&lt;/em&gt; in those days was somewhat weird (&lt;em&gt;still is&lt;/em&gt;), or should I say: &lt;em&gt;C-like&lt;/em&gt;. Look at this for example:&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;3 ways to instantiate multi-dimensional arrays&lt;/strong&gt;&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;int[][] array = new int[3][2];&lt;/code&gt;     // ok..&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;int[] array[] = new int[2][2];&lt;/code&gt;     // reminding of C pointer notations&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;int[][] array = new int[5][];&lt;/code&gt;      // WTF?&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;What does option #3 even mean?&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;And how can this not give an IndexOutOfBoundsException?&lt;/p&gt;
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[][][]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;array&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;][&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;array&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;];&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;I couldn’t google the answer straightaway, so I turned to &lt;a href=&quot;https://github.com/openjdk/jol&quot;&gt;Jol&lt;/a&gt; to find out more. NB. Jol does not work really well on macos (dunno about windows), so ran it in a linux vm and saw the following:
+&lt;img src=&quot;/assets/images/arrays/screenshot-jol.png&quot; alt=&quot;jol&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://github.com/openjdk/jol&quot;&gt;Jol&lt;/a&gt; is a tool to investigate the memory internals of java objects. For a 2-dimensional String array you’d have to do this:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;java &lt;span class=&quot;nt&quot;&gt;-jar&lt;/span&gt; jol-cli.jar internals &lt;span class=&quot;s2&quot;&gt;&quot;[[Ljava.lang.String;&quot;&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;BTW, notice the weird notation! I knew&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;[[L&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;;&lt;/code&gt;. If you look at bytecode, this is all over the place. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;L&lt;/code&gt; indicates an object (as opposed to the primitives as in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;I&lt;/code&gt; for ints) and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;[[&lt;/code&gt; is indeed an array of two dimensions. So those are the bytecode notations, but internally it also uses &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/&lt;/code&gt; whereas here it’s the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.&lt;/code&gt; again. It’s confusing, but it turns out this is just the way that &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Class.forName&lt;/code&gt; wants it (if you need to need a Class object of that type). So there’s a thing I didn’t know.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Then it dawned on me. The phrase &lt;em&gt;array of arrays&lt;/em&gt; means that the outer array really doesn’t care about the lengths of the inner ones. The only thing the outer array knows is its own length.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/arrays/screenshot-jol-length.png&quot; alt=&quot;jol&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;So &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;String[1][1]&lt;/code&gt; is in fact &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;String[1][]&lt;/code&gt;. Every element in the outer array is a 1-dimensional array, of any length! No runtime bounds checks here (C-like!). Of course once the inner array is initialized, there are checks again.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;There are no true multi-dimensional arrays in Java, just arrays of arrays. This is why int[][] is a subclass of Object[]. If you need a large multi-dimensional int[] in Java, it is a bit more efficient to allocate a large int[] and calculate the offset yourself. However, make sure to, if possible, navigate the int[] in such a way that 64 bytes at a time can be read. That is a lot more efficient than jumping around. &lt;strong&gt;&lt;em&gt;&lt;a href=&quot;https://javaspecialists.teachable.com/courses/249332/lectures/3886639&quot;&gt;Heinz Kabutz&lt;/a&gt;&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;‘Jumping around’ is not efficient because it hinders CPU caching and &lt;em&gt;prefetching&lt;/em&gt;. Random Access Memory is sloow! It’s thanks to the L1/2/3 caches that processors can actually show off their speed while dealing with memory. They fetch more than needed at the time and cache it for future reads. The effect of this amplified when the CPU can also predict your &lt;em&gt;next &lt;del&gt;move&lt;/del&gt; read&lt;/em&gt;. So the way you read and write an array matters.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;strong&gt;But what performance gain can you actually achieve?&lt;/strong&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;This question tripped me and I fell down the rabbithole of microbenchmarking. I learnt a lot more about JMH, but in the end I discarded all the measurements from my Mac M2 max and reran them on a standard Amazon linux AMI. The results were more in line with what I read elsewhere. It’s also more generalisable in the sense that server applications rarely run on high-end laptop architectures. Most of the time, my laptop showed a less prominent effect of caching.&lt;/p&gt;
+
+&lt;h4 id=&quot;benchmarking-with-jmh&quot;&gt;Benchmarking with JMH&lt;/h4&gt;
+
+&lt;p&gt;Your friend, the JIT compiler becomes your adversary once you get into benchmarking. Initially I glowed observing a performance difference of 1342%, but that had more to do with unwanted removal of dead code, than the actual truth. Something to be very aware of.&lt;/p&gt;
+
+&lt;p&gt;Also, testing your benchmarks makes sense. Verify you expectations of the actual functionality, to avoid the wrong conclusions about performance. Seems obvious but yeah, somebody had to point me to a mistake in my code…&lt;/p&gt;
+
+&lt;p&gt;This is what I ended up with&lt;/p&gt;
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;nd&quot;&gt;@Benchmark&lt;/span&gt;
+&lt;span class=&quot;nd&quot;&gt;@BenchmarkMode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;Mode&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;AverageTime&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nd&quot;&gt;@OutputTimeUnit&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nc&quot;&gt;TimeUnit&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;NANOSECONDS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;classicArrayGetTDLR&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;ROWS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;r&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;no&quot;&gt;COLS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;t&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;intArray&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;r&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;][&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;];&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;TDLR stands for Top Down (outer loop), then Left Right. This order means that the code traverses row by row, which is good, because the memory is layed out like this. LRTD on the other hand takes one column after another. This will result in cache misses most of the time.&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Benchmark&lt;/th&gt;
+      &lt;th&gt;Mode&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Cnt&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Score&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Error&lt;/th&gt;
+      &lt;th&gt;Units&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;classic2DArrayGetLRTD&lt;/td&gt;
+      &lt;td&gt;avgt&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;5&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4184284.298&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;± 7651435.011&lt;/td&gt;
+      &lt;td&gt;ns/op&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;classic2DArrayGetTDLR&lt;/td&gt;
+      &lt;td&gt;avgt&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;5&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;389369.258&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;±    4064.665&lt;/td&gt;
+      &lt;td&gt;ns/op&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;&lt;em&gt;Amazon Intel(R) Xeon(R) CPU E5-2676 v3 @ 2.40GHz&lt;/em&gt;&lt;/p&gt;
+
+&lt;p&gt;Wow, 10x as fast! Exactly what &lt;a href=&quot;https://www.youtube.com/watch?v=247cXLkYt2M&quot;&gt;simondev&lt;/a&gt; found (using javascript). And what my laptop annoyingly failed to reproduce. There the difference was around a factor of 2.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;strong&gt;Caveat:&lt;/strong&gt;
+The individual numbers don’t mean that much.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Another thing that Kabutz says is that it pays off to simulate multidimensional arrays using a one-dimensional one. This is easy to do. But is it useful?&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Benchmark&lt;/th&gt;
+      &lt;th&gt;Mode&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Cnt&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Score&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Error&lt;/th&gt;
+      &lt;th&gt;Units&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;seqMultArrayGetLRTD&lt;/td&gt;
+      &lt;td&gt;avgt&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;5&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;1399817.940&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;±  271516.298&lt;/td&gt;
+      &lt;td&gt;ns/op&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;seqMultArrayGetTDLR&lt;/td&gt;
+      &lt;td&gt;avgt&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;5&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;392543.679&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;±    3671.543&lt;/td&gt;
+      &lt;td&gt;ns/op&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;blockquote&gt;
+
+&lt;/blockquote&gt;
+
+&lt;p&gt;The code for this benchmark (see github in the link at the bottom) allows any dimensions. Surely we can do a little better with a specialised version for just two.&lt;/p&gt;
+
+&lt;p&gt;Like this:&lt;/p&gt;
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+3
+4
+5
+6
+7
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;row&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;col&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;row&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;cols&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;col&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;set&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;row&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;col&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;val&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;row&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;cols&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;col&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;val&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Benchmark&lt;/th&gt;
+      &lt;th&gt;Mode&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Cnt&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Score&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Error&lt;/th&gt;
+      &lt;th&gt;Units&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;seq2DArrayGetLRTD&lt;/td&gt;
+      &lt;td&gt;avgt&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;5&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;1362950.693&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;±   43153.084&lt;/td&gt;
+      &lt;td&gt;ns/op&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;seq2DArrayGetTDLR&lt;/td&gt;
+      &lt;td&gt;avgt&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;5&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;390777.378&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;±   11339.226&lt;/td&gt;
+      &lt;td&gt;ns/op&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;blockquote&gt;
+
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;no difference!&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;strong&gt;So?&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Ok, there is an advantage in calculating your own indexes, BUT only if you for some reason cannot benefit from caching. All TDLR scores are roughly equal. Suppose you are reading random parts of images, in that case, it helps.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;strong&gt;What about &lt;em&gt;writes&lt;/em&gt;?&lt;/strong&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Benchmark&lt;/th&gt;
+      &lt;th&gt;Mode&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Cnt&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Score&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Error&lt;/th&gt;
+      &lt;th&gt;Units&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;classic2DArraySetLRTD&lt;/td&gt;
+      &lt;td&gt;avgt&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;5&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;4212263.046&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;± 267087.769&lt;/td&gt;
+      &lt;td&gt;ns/op&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;classic2DArraySetTDLR&lt;/td&gt;
+      &lt;td&gt;avgt&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;5&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;1032451.067&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;±  35040.403&lt;/td&gt;
+      &lt;td&gt;ns/op&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;seq2DArraySetLRTD&lt;/td&gt;
+      &lt;td&gt;avgt&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;5&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;2569007.766&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;±  45255.561&lt;/td&gt;
+      &lt;td&gt;ns/op&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;seq2DArraySetTDLR&lt;/td&gt;
+      &lt;td&gt;avgt&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;5&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;721699.703&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;±  22605.344&lt;/td&gt;
+      &lt;td&gt;ns/op&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;blockquote&gt;
+
+&lt;/blockquote&gt;
+
+&lt;p&gt;3 to 4 times as fast for TDLR. Here index-calculation has more of an impact. So for editing random parts of images, especially for writing, use it.&lt;/p&gt;
+
+&lt;p&gt;–&amp;gt; But of course you should do your own measurements before embarking on any specific approach.&lt;/p&gt;
+
+&lt;h5 id=&quot;compiler-blackholes&quot;&gt;&lt;em&gt;&lt;a href=&quot;https://shipilev.net/jvm/anatomy-quarks/27-compiler-blackholes/&quot;&gt;compiler blackholes&lt;/a&gt;&lt;/em&gt;&lt;/h5&gt;
+
+&lt;p&gt;How to avoid dead code elimination with JMH?&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;add a return parameter (like in the code example above)&lt;/li&gt;
+  &lt;li&gt;use &lt;em&gt;compiler blackholes&lt;/em&gt; (as of jdk-17)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Not using the return parameter in a benchmark makes the JIT compiler think it can help you by removing your precious code. Adding a sensible return parameter prohibits it from being that clever.
+JMH will pick up whatever is returned and drops it into a black hole, and the information is lost. This in itself has some performance overhead and when the benchmark duration is in the same range, this will interfere with your measurements. Sounds like quantum physics, doesn’t it?&lt;/p&gt;
+
+&lt;p&gt;So &lt;em&gt;Compiler blackholes&lt;/em&gt; make sure that the JMH Blackhole is optimized away, but NOT your benchmark code. This is new a JVM feature that you have to enable as follows:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;java -Djmh.blackhole.mode=COMPILER -jar benchmark.jar&lt;/code&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;old-school&quot;&gt;Old School?&lt;/h4&gt;
+
+&lt;p&gt;Returning to the start of this article? Are arrays irrelevant for most developers, building boring web applications? They won’t often use them, but their JVM will, as arrays are used in String, ArrayList, and HashMap, in other words, the most prevalent classes (number of instances) in any running JVM.&lt;/p&gt;
+
+&lt;p&gt;So iterating the characters in a String or the elements in an ArrayList follows the same performance laws as those for arrays. Oh, and don’t use LinkedList. Practice differs from theory here, because of CPU caching. Most of the internet is still not aware of this, judging from a recent poll on LinkedIn. This &lt;a href=&quot;https://www.youtube.com/watch?v=YQs6IC-vgmo&amp;amp;t=0s&quot;&gt;video&lt;/a&gt; with Bjarne Stroustrup explains exactly why.&lt;/p&gt;
+
+&lt;h3 id=&quot;diy&quot;&gt;DIY&lt;/h3&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;table class=&quot;rouge-table&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class=&quot;rouge-gutter gl&quot;&gt;&lt;pre class=&quot;lineno&quot;&gt;1
+2
+3
+&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;rouge-code&quot;&gt;&lt;pre&gt;git clone https://github.com/shautvast/arraybench
+mvn clean package
+java &lt;span class=&quot;nt&quot;&gt;-Djmh&lt;/span&gt;.blackhole.mode&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;COMPILER &lt;span class=&quot;nt&quot;&gt;-jar&lt;/span&gt; target/benchmark.jar
+&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div style=&quot;text-align: right&quot;&gt;∞&lt;/div&gt;
+</description>
+        <pubDate>Thu, 24 Aug 2023 00:00:00 +0200</pubDate>
+        <link>http://localhost:4000/multidim-arrays/</link>
+        <guid isPermaLink="true">http://localhost:4000/multidim-arrays/</guid>
+        
+        
+        <category>java</category>
+        
+        <category>performance</category>
+        
+      </item>
+    
+  </channel>
+</rss>
