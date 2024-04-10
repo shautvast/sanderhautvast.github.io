@@ -4,8 +4,8 @@ title:  "The quirks and performance of java arrays"
 author: sander.hautvast
 categories: [java, performance]
 beforetoc: "FOO"
-featured: true
-hidden: false
+featured: false
+hidden: true
 lang: en
 ---
 Why a blog about the performance of arrays in java? They are old-school. Does anyone really need them?
